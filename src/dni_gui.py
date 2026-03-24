@@ -19,6 +19,16 @@ from tkinter import filedialog, messagebox, ttk
 
 import tkinter as tk
 
+from src.config import (
+    ALTURA_LOGO_TITULO_PX,
+    COLORES,
+    LOTE_MAX,
+    LOTE_MIN,
+    SEPARADORES,
+    WINDOW_MIN_HEIGHT,
+    WINDOW_MIN_WIDTH,
+    WINDOW_TITLE,
+)
 from src.dni import (
     calcular_letra_dni,
     generar_dni_aleatorio,
@@ -26,32 +36,6 @@ from src.dni import (
     truncar_para_clipboard,
     validar_dni_completo,
 )
-
-# Constantes de la UI
-_LOTE_MIN: int = 1
-_LOTE_MAX: int = 10_000
-# Alto aproximado del logo junto al título (px; escala por subsample entero)
-_ALTURA_LOGO_TITULO_PX: int = 40
-_SEPARADORES: dict[str, str] = {
-    "Línea nueva": "\n",
-    "Coma": ",",
-    "Punto y coma": ";",
-    "Tabulación": "\t",
-}
-
-# Paleta de colores moderna (inspirada en diseño SaaS)
-COLORES = {
-    "fondo": "#f8fafc",
-    "superficie": "#ffffff",
-    "borde": "#e2e8f0",
-    "primario": "#2563eb",
-    "primario_hover": "#1d4ed8",
-    "exito": "#059669",
-    "error": "#dc2626",
-    "texto": "#1e293b",
-    "texto_secundario": "#64748b",
-    "acento_suave": "#dbeafe",
-}
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +93,7 @@ def _logo_titulo_photoimage() -> tk.PhotoImage | None:
     if ancho <= 0 or alto <= 0:
         return foto
     lado_max = max(ancho, alto)
-    factor = max(1, lado_max // _ALTURA_LOGO_TITULO_PX)
+    factor = max(1, lado_max // ALTURA_LOGO_TITULO_PX)
     if factor <= 1:
         return foto
     return foto.subsample(factor, factor)
@@ -126,9 +110,9 @@ class DniApp:
     def __init__(self) -> None:
         """Inicializa la ventana y los widgets."""
         self.root = tk.Tk()
-        self.root.title("Generador DNI Español")
+        self.root.title(WINDOW_TITLE)
         self.root.resizable(True, True)
-        self.root.minsize(450, 620)
+        self.root.minsize(WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT)
         self.root.configure(bg=COLORES["fondo"])
         _aplicar_icono_ventana(self.root)
 
@@ -244,7 +228,7 @@ class DniApp:
 
         tk.Label(
             fila_titulo,
-            text="Generador DNI Español",
+            text=WINDOW_TITLE,
             font=("Segoe UI", 18, "bold"),
             fg=COLORES["texto"],
             bg=COLORES["fondo"],
@@ -366,8 +350,8 @@ class DniApp:
 
         self.spinbox_cantidad = tk.Spinbox(
             lote_frame,
-            from_=_LOTE_MIN,
-            to=_LOTE_MAX,
+            from_=LOTE_MIN,
+            to=LOTE_MAX,
             width=8,
             font=("Consolas", 12),
             justify=tk.CENTER,
@@ -412,7 +396,7 @@ class DniApp:
         ).pack(side=tk.LEFT, padx=(0, 8))
 
         self.var_separador = tk.StringVar(value="Línea nueva")
-        for sep_nombre in _SEPARADORES:
+        for sep_nombre in SEPARADORES:
             rb = tk.Radiobutton(
                 sep_frame,
                 text=sep_nombre,
@@ -470,9 +454,7 @@ class DniApp:
         )
         footer.pack(anchor=tk.W, pady=(16, 0))
 
-    def _crear_card(
-        self, parent: tk.Widget, titulo: str
-    ) -> tk.Frame:
+    def _crear_card(self, parent: tk.Widget, titulo: str) -> tk.Frame:
         """Crea una tarjeta (card) con título y borde sutil."""
         card = tk.Frame(
             parent,
@@ -525,9 +507,7 @@ class DniApp:
 
     def _obtener_separador_actual(self) -> str:
         """Devuelve el carácter separador según la selección del usuario."""
-        return _SEPARADORES.get(
-            self.var_separador.get(), "\n"
-        )
+        return SEPARADORES.get(self.var_separador.get(), "\n")
 
     def _copiar_al_portapapeles(self, texto: str) -> tuple[bool, bool]:
         """
@@ -653,10 +633,8 @@ class DniApp:
                 return
 
             cantidad = int(cantidad_str)
-            if not _LOTE_MIN <= cantidad <= _LOTE_MAX:
-                self._mostrar_error_lote(
-                    f"La cantidad debe estar entre {_LOTE_MIN} y {_LOTE_MAX}."
-                )
+            if not LOTE_MIN <= cantidad <= LOTE_MAX:
+                self._mostrar_error_lote(f"La cantidad debe estar entre {LOTE_MIN} y {LOTE_MAX}.")
                 return
 
             self._generando_lote = True
@@ -672,17 +650,18 @@ class DniApp:
             def worker() -> None:
                 try:
                     dnis = generar_dni_lote(cantidad)
-                    self.root.after(0, lambda: self._finalizar_lote(dnis))
                 except Exception as e:
                     logger.exception("Error en generación de lote: %s", e)
                     msg_err = str(e)
                     self.root.after(
                         0,
-                        lambda m=msg_err: self._mostrar_error_lote(f"Error: {m}"),
+                        lambda m=msg_err: self._on_lote_worker_terminado_error(m),
                     )
-                finally:
-                    self.root.after(0, lambda: self._deshabilitar_boton_lote(False))
-                    self._generando_lote = False
+                else:
+                    self.root.after(
+                        0,
+                        lambda d=dnis: self._on_lote_worker_terminado_exito(d),
+                    )
 
             thread = threading.Thread(target=worker, daemon=True)
             thread.start()
@@ -691,6 +670,26 @@ class DniApp:
             self._mostrar_error_lote(str(e))
             self._generando_lote = False
             self._deshabilitar_boton_lote(False)
+
+    def _on_lote_worker_terminado_exito(self, dnis: list[str]) -> None:
+        """
+        Hilo principal: aplica resultado del lote y libera el estado de generación.
+
+        Debe invocarse solo mediante ``root.after`` desde el worker.
+        """
+        self._finalizar_lote(dnis)
+        self._deshabilitar_boton_lote(False)
+        self._generando_lote = False
+
+    def _on_lote_worker_terminado_error(self, mensaje: str) -> None:
+        """
+        Hilo principal: muestra error de lote y libera el estado de generación.
+
+        Debe invocarse solo mediante ``root.after`` desde el worker.
+        """
+        self._mostrar_error_lote(f"Error: {mensaje}")
+        self._deshabilitar_boton_lote(False)
+        self._generando_lote = False
 
     def _finalizar_lote(self, dnis: list[str]) -> None:
         """Actualiza la UI con los DNIs generados (llamado desde el hilo principal)."""

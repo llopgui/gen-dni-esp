@@ -9,6 +9,8 @@ import logging
 import re
 import secrets
 
+from src.config import LOTE_MAX, LOTE_MIN
+
 # Cadena de letras de control del DNI español (posición = resto de número % 23)
 LETRAS_DNI: str = "TRWAGMYFPDXBNJZSQVHLCKE"
 
@@ -21,14 +23,10 @@ _PATRON_DNI_SUBSTRING: re.Pattern[str] = re.compile(r"\d{8}[A-Z]")
 _DNI_MIN: int = 10_000_000
 _DNI_MAX: int = 99_999_999
 
-# Límites para generación por lotes
-_LOTE_MIN: int = 1
-_LOTE_MAX: int = 10_000
-
 # Límite máximo de bytes para copiar al portapapeles (1 MB)
 _CLIPBOARD_MAX_BYTES: int = 1_048_576
 
-# Nivel de logging por defecto para el módulo (sin fichero .env ni variables externas)
+# Nivel de logging por defecto del módulo (sin .env ni variables externas)
 _LOG_LEVEL_DEFAULT: int = logging.WARNING
 
 # Singleton de generador seguro (evita crear instancia en cada llamada)
@@ -44,7 +42,9 @@ def _get_rng() -> secrets.SystemRandom:
 
 
 def _configurar_logging() -> None:
-    """Configura el nivel de logging del paquete con el valor por defecto del proyecto."""
+    """
+    Configura el nivel de logging del paquete con el valor por defecto.
+    """
     logging.getLogger("src.dni").setLevel(_LOG_LEVEL_DEFAULT)
 
 
@@ -163,19 +163,19 @@ def generar_dni_lote(cantidad: int, unicos: bool = True) -> list[str]:
     sin cargar todo el espacio de búsqueda en memoria.
 
     Args:
-        cantidad: Número de DNIs a generar (1 a 10000).
+        cantidad: Número de DNIs a generar (rango ``LOTE_MIN``–``LOTE_MAX`` en
+            ``src.config``).
         unicos: Si True, garantiza que no haya duplicados en el lote.
 
     Returns:
         Lista de DNIs completos con formato "12345678A".
 
     Raises:
-        ValueError: Si cantidad está fuera del rango permitido.
+        ValueError: Si cantidad está fuera del rango permitido, o si con
+            ``unicos=True`` no se alcanza la cantidad tras el límite de intentos.
     """
-    if not _LOTE_MIN <= cantidad <= _LOTE_MAX:
-        raise ValueError(
-            f"La cantidad debe estar entre {_LOTE_MIN} y {_LOTE_MAX}"
-        )
+    if not LOTE_MIN <= cantidad <= LOTE_MAX:
+        raise ValueError(f"La cantidad debe estar entre {LOTE_MIN} y {LOTE_MAX}")
 
     rng = _get_rng()
     resultado: list[str] = []
@@ -196,10 +196,10 @@ def generar_dni_lote(cantidad: int, unicos: bool = True) -> list[str]:
         resultado.append(dni)
 
     if len(resultado) < cantidad:
-        logger.warning(
-            "No se pudieron generar %d DNIs únicos (obtenidos: %d)",
-            cantidad,
-            len(resultado),
+        raise ValueError(
+            f"No se pudieron generar {cantidad} DNIs únicos "
+            f"(obtenidos: {len(resultado)}). Reduce la cantidad o usa "
+            "generar_dni_lote(..., unicos=False)."
         )
 
     logger.debug("Lote de %d DNIs generado", len(resultado))

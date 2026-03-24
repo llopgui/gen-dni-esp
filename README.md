@@ -1,5 +1,7 @@
 # Generador DNI (España) — aplicación de escritorio
 
+**Versión:** 1.0.1 (`APP_VERSION` en [`src/config.py`](src/config.py)).
+
 Aplicación de **escritorio** en Python con interfaz **tkinter** para practicar el **algoritmo oficial** de la letra del DNI español: cálculo, validación y generación de identificadores **ficticios** con fines **didácticos**.
 
 > **Propósito educativo.** Este repositorio es un **ejercicio de programación** y de interfaz de usuario. No sustituye documentación oficial, no verifica identidades reales y **no está pensado** para entornos de producción ni cumplimiento normativo.
@@ -53,7 +55,7 @@ Si necesitas validar identidades o documentos en un contexto profesional, utiliz
 
 ## Requisitos
 
-- **Python 3.10+** (recomendado usar la última versión estable que tengas instalada).  
+- **Python 3.12+** (recomendado usar la última versión estable que tengas instalada).  
 - **tkinter** (incluido con la instalación estándar de Python en Windows en la mayoría de casos).  
 - Dependencias **pip** solo para **desarrollo** y empaquetado: ver `requirements-dev.txt`.  
 - En **tiempo de ejecución** la aplicación no exige paquetes pip adicionales (`requirements.txt` está vacío a propósito).
@@ -115,7 +117,7 @@ python -m src.dni_gui
 
 ### Registro (logging)
 
-El módulo `src.dni` utiliza por defecto nivel **WARNING** (constante `_LOG_LEVEL_DEFAULT` en `src/dni.py`). No se emplea fichero `.env` ni variables de entorno para la configuración básica.
+El módulo `src.dni` utiliza por defecto nivel **WARNING** (constante `_LOG_LEVEL_DEFAULT` en `src/dni.py`). La configuración general de la aplicación (versión, título de ventana, límites de lote, paleta de colores, etc.) está centralizada en **`src/config.py`**; no se emplea fichero `.env` ni variables de entorno para la configuración básica.
 
 ---
 
@@ -172,8 +174,10 @@ Salida esperada: **`dist/GeneradorDNI.exe`**. En el registro de PyInstaller debe
 ```text
 gen-dni-esp/
 ├── assets/              # Iconos (PNG / ICO)
+├── docs/                # Investigación y plan de mejoras (research / plan)
 ├── src/
 │   ├── main.py          # Punto de entrada de la aplicación
+│   ├── config.py        # Constantes (versión, ventana, lotes, colores, …)
 │   ├── dni.py           # Lógica del DNI (cálculo, validación, lotes)
 │   └── dni_gui.py       # Interfaz tkinter
 ├── tests/               # Pruebas automatizadas

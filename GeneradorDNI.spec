@@ -1,6 +1,9 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
 PyInstaller: el icono del .exe es el mismo que la app (assets/icon.ico).
+
+Versión del empaquetado: 1.0.1 (mantener alineada con APP_VERSION en src/config.py).
+
 Ejecutar: python -m PyInstaller GeneradorDNI.spec
 """
 import os
@@ -40,6 +43,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
+    # dist/GeneradorDNI.exe · producto v1.0.1 (= APP_VERSION en src/config.py)
     name="GeneradorDNI",
     debug=False,
     bootloader_ignore_signals=False,

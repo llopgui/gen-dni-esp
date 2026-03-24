@@ -65,9 +65,7 @@ def construir_exe(raiz: Path, limpiar_build: bool) -> None:
 def _argumentos() -> argparse.Namespace:
     """Parsea argumentos CLI."""
     p = argparse.ArgumentParser(
-        description=(
-            "Genera GeneradorDNI.exe con PyInstaller (GeneradorDNI.spec)."
-        ),
+        description=("Genera GeneradorDNI.exe con PyInstaller (GeneradorDNI.spec)."),
     )
     p.add_argument(
         "--clean",

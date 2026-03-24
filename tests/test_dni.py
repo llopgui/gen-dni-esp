@@ -101,7 +101,8 @@ class TestValidarDniCompleto:
     def test_none_o_no_string(self) -> None:
         """None o no-string devuelve False."""
         assert validar_dni_completo(None) is False  # type: ignore[arg-type]
-        assert validar_dni_completo(12345678) is False  # type: ignore[arg-type]
+        num = 12345678
+        assert validar_dni_completo(num) is False  # type: ignore[arg-type]
 
 
 class TestGenerarDniAleatorio:
@@ -167,6 +168,26 @@ class TestGenerarDniLote:
         assert len(dnis) == 1
         assert validar_dni_completo(dnis[0]) is True
 
+    def test_unicos_imposible_lanza_valueerror(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """
+        Si ``randint`` solo devuelve el mismo número, no hay DNIs únicos
+        suficientes; debe lanzarse ValueError (no lista incompleta).
+        """
+        import src.dni as dni_mod
+
+        class _RngFijo:
+            """Generador que siempre repite el mismo DNI numérico."""
+
+            def randint(self, a: int, b: int) -> int:
+                return 12_345_678
+
+        monkeypatch.setattr(dni_mod, "_get_rng", lambda: _RngFijo())
+
+        with pytest.raises(ValueError, match="No se pudieron generar"):
+            generar_dni_lote(5, unicos=True)
+
 
 class TestClipboardSeguridad:
     """Tests para funciones de seguridad del portapapeles."""
@@ -178,8 +199,12 @@ class TestClipboardSeguridad:
 
     def test_texto_no_string_no_es_seguro(self) -> None:
         """No-string devuelve False."""
-        assert es_texto_seguro_para_clipboard(123) is False  # type: ignore[arg-type]
-        assert es_texto_seguro_para_clipboard(None) is False  # type: ignore[arg-type]
+        assert es_texto_seguro_para_clipboard(123) is (  # type: ignore[arg-type]
+            False
+        )
+        assert es_texto_seguro_para_clipboard(None) is (  # type: ignore[arg-type]
+            False
+        )
 
     def test_truncar_texto_pequeno_no_trunca(self) -> None:
         """Texto pequeño no se trunca."""
@@ -197,7 +222,9 @@ class TestClipboardSeguridad:
 
     def test_truncar_no_string_devuelve_vacio(self) -> None:
         """No-string devuelve tupla vacía."""
-        resultado, fue_truncado = truncar_para_clipboard(123)  # type: ignore[arg-type]
+        resultado, fue_truncado = truncar_para_clipboard(  # type: ignore[arg-type]
+            123,
+        )
         assert resultado == ""
         assert fue_truncado is True
 

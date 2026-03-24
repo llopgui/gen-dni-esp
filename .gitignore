@@ -108,3 +108,6 @@ Desktop.ini
 
 # --- Publicación PyPI (credenciales)
 .pypirc
+pyproject.toml
+.flake8
+.gitignore
