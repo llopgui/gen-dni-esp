@@ -1,0 +1,1 @@
+# Sin dependencias pip en tiempo de ejecución (tkinter y el resto vienen con Python).
